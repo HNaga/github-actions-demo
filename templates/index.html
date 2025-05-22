@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Automated Course Content & Video Generator</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f0f2f5; color: #333; font-size: 16px; line-height: 1.6; }
+        .container { max-width: 900px; margin: 30px auto; background-color: #fff; padding: 25px 40px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        h1, h2, h3 { color: #1a73e8; /* Google Blue */ }
+        h1 { text-align: center; margin-bottom: 35px; font-size: 2.2em; }
+        h2 { border-bottom: 2px solid #1a73e8; padding-bottom: 8px; margin-top: 35px; font-size: 1.8em; }
+        h3 { font-size: 1.4em; color: #34a853; /* Google Green */ margin-top: 25px; }
+        form div { margin-bottom: 18px; }
+        label { display: block; margin-bottom: 6px; font-weight: 600; font-size: 0.95em; }
+        input[type="text"], textarea, select {
+            width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 5px;
+            box-sizing: border-box; font-size: 0.95em; transition: border-color 0.2s;
+        }
+        input[type="text"]:focus, textarea:focus, select:focus { border-color: #1a73e8; box-shadow: 0 0 0 2px rgba(26,115,232,0.2); outline: none;}
+        textarea { height: 120px; resize: vertical; }
+        input[type="submit"], button[type="submit"], button[type="button"] {
+            padding: 12px 22px; background-color: #1a73e8; color: white; border: none;
+            border-radius: 5px; cursor: pointer; font-size: 1em; font-weight: 500;
+            transition: background-color 0.2s; margin-top: 10px; margin-right: 10px;
+        }
+        button[type="button"] { background-color: #5f6368; /* Google Grey */}
+        input[type="submit"]:hover, button[type="submit"]:hover, button[type="button"]:hover { opacity: 0.85; }
+        
+        .outline-item { display: flex; align-items: center; margin-bottom: 10px; background-color: #f8f9fa; padding: 10px; border-radius: 5px; border: 1px solid #e0e0e0;}
+        .outline-item input[type="checkbox"] { margin-right: 12px; transform: scale(1.3); cursor: pointer; }
+        .outline-item span { flex-grow: 1; padding: 6px; border: 1px dashed transparent; transition: background-color 0.2s, border-color 0.2s; }
+        .outline-item span[contenteditable="true"]:hover { border-color: #1a73e8; background-color: #e8f0fe; }
+        
+        .status-section { padding: 18px; margin: 25px 0; border-radius: 5px; border-width: 1px; border-style: solid; }
+        .confirmation { background-color: #e6f4ea; color: #1e8e3e; border-color: #a8ddb5; /* Google Green tones */ }
+        .error { background-color: #fce8e6; color: #d93025; border-color: #f7c5c0; /* Google Red tones */ }
+        .info { background-color: #e8f0fe; color: #1967d2; border-color: #a9c7e8; /* Google Blue tones */ }
+        
+        ul { list-style-type: none; padding-left: 0; }
+        li.status-item { background-color: #fff; border: 1px solid #e0e0e0; padding: 10px 15px; margin-bottom: 8px; border-radius: 5px; font-size: 0.9em; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        li.status-item strong { color: #1a73e8; }
+        li.status-item .error-detail { color: #c5221f; font-size: 0.85em; display: block; margin-top: 5px; white-space: pre-wrap; max-height: 100px; overflow-y: auto; background: #fef7f7; padding:5px; border-radius:3px;}
+
+        video { max-width: 100%; border-radius: 5px; margin-top:12px; border: 1px solid #ddd; background-color: #000; }
+        hr { border: 0; height: 1px; background-color: #e0e0e0; margin: 40px 0; }
+        .button-group { margin-top: 15px; }
+        small.path-info { display: block; font-size: 0.8em; color: #5f6368; margin-top: 5px; word-break: break-all; }
+    </style>
+    <script>
+        function prepareOutlineData() {
+            const outlineItems = document.querySelectorAll('.outline-item');
+            outlineItems.forEach((item, index) => {
+                const checkbox = item.querySelector('input[type="checkbox"]');
+                const textSpan = item.querySelector('span[contenteditable="true"]');
+                let existingHidden = document.getElementById('outline_item_text_hidden_' + index);
+                if (existingHidden) existingHidden.remove();
+
+                if (checkbox.checked) {
+                    const hiddenInput = document.createElement('input');
+                    hiddenInput.type = 'hidden';
+                    hiddenInput.id = 'outline_item_text_hidden_' + index;
+                    hiddenInput.name = 'outline_item_text_' + index;
+                    hiddenInput.value = textSpan.innerText.trim();
+                    document.getElementById('outlineForm').appendChild(hiddenInput);
+                }
+            });
+            return true;
+        }
+    </script>
+</head>
+<body>
+    <div class="container">
+        <h1>Automated Course Content & Video Generator</h1>
+
+        <form action="/submit_course_details" method="POST">
+            <h2>1. Define Your Course</h2>
+            <div>
+                <label for="course_topic">Course Topic:</label>
+                <input type="text" id="course_topic" name="course_topic" value="{{ course_topic or '' }}" required>
+            </div>
+            <div>
+                <label for="course_details">Brief Course Details/Objectives:</label>
+                <textarea id="course_details" name="course_details" required>{{ course_details or '' }}</textarea>
+            </div>
+            <div>
+                <label for="audience_level">Target Audience Level:</label>
+                <select id="audience_level" name="audience_level">
+                    <option value="Beginner" {% if audience_level == 'Beginner' %}selected{% endif %}>Beginner</option>
+                    <option value="Intermediate" {% if audience_level == 'Intermediate' %}selected{% endif %}>Intermediate</option>
+                    <option value="Advanced" {% if audience_level == 'Advanced' %}selected{% endif %}>Advanced</option>
+                </select>
+            </div>
+            <div class="button-group">
+                <input type="submit" value="Step 1: Generate Outline">
+            </div>
+        </form>
+
+        {% if outline %}
+        <hr>
+        <h2>2. Refine Course Outline</h2>
+        <p class="info status-section">Review and edit the chapter titles below. Uncheck items to exclude them from content generation.</p>
+        <form id="outlineForm" action="/generate_content" method="POST" onsubmit="return prepareOutlineData();">
+            <input type="hidden" name="course_topic" value="{{ course_topic or '' }}">
+            <input type="hidden" name="course_details" value="{{ course_details or '' }}">
+            <input type="hidden" name="audience_level" value="{{ audience_level or '' }}">
+            {% for item in outline %}
+            <div class="outline-item">
+                <input type="checkbox" id="item_selected_{{ loop.index0 }}" name="outline_item_selected_{{ loop.index0 }}" value="true" checked>
+                <span contenteditable="true" data-original="{{ item }}">{{ item }}</span>
+            </div>
+            {% endfor %}
+            <div class="button-group">
+                <button type="submit">Step 2: Generate Chapter Content</button>
+            </div>
+        </form>
+        {% endif %}
+
+        {% if generated_content %}
+        <hr>
+        <h2>3. Review and Edit Content</h2>
+        <p class="info status-section">Edit the generated content for each chapter. This text will be saved and used for video script generation.</p>
+        <form action="/save_content" method="POST">
+            {% for chapter, content_text in generated_content.items() %}
+            <div>
+                <h3>{{ chapter }}</h3>
+                <textarea name="content_{{ chapter|replace(' ', '_')|replace('-', '_')|replace('.', '_')|replace(':', '_') }}" rows="10">{{ content_text }}</textarea>
+            </div>
+            {% endfor %}
+            <div class="button-group">
+                <button type="submit">Step 3: Save Content</button>
+            </div>
+        </form>
+        {% endif %}
+
+        {% if save_confirmation %}
+        <hr>
+        <h2>4. Content Save Status</h2>
+        <div class="status-section {{ 'confirmation' if save_confirmation.file_paths else 'error' }}">
+            <p>{{ save_confirmation.message }}</p>
+            {% if save_confirmation.file_paths %}
+            <p>Files saved in '{{ save_confirmation.course_directory }}':</p>
+            <ul>
+                {% for path in save_confirmation.file_paths %}
+                <li class="status-item">{{ path | replace(save_confirmation.course_directory + '/', '') }}</li>
+                {% endfor %}
+            </ul>
+            <form action="/generate_slides" method="POST" class="button-group">
+                <div>
+                    <label for="manim_template">Choose Manim Slide Template:</label>
+                    <select id="manim_template" name="manim_template">
+                        <option value="SimpleTitleContent" {% if manim_template_selected == 'SimpleTitleContent' %}selected{% endif %}>Simple Title & Content</option>
+                        <option value="TitleWithBulletPoints" {% if manim_template_selected == 'TitleWithBulletPoints' %}selected{% endif %}>Title with Bullet Points</option>
+                        <option value="TwoColumn" {% if manim_template_selected == 'TwoColumn' %}selected{% endif %}>Two Column Layout</option>
+                    </select>
+                </div>
+                <button type="submit">Step 4: Generate Manim Scripts</button>
+            </form>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {% if manim_scripts_generated %}
+        <hr>
+        <h2>5. Manim Script Generation Status</h2>
+        {% if manim_scripts_generated.error %}
+            <p class="error status-section">Error: {{ manim_scripts_generated.error }}</p>
+        {% else %}
+            <div class="confirmation status-section">
+                <p>Manim scripts generated successfully in '{{ manim_scripts_generated.directory }}'.</p>
+                <ul>
+                    {% for script_info in manim_scripts_generated.scripts %}
+                        {% if script_info.error %}
+                            <li class="status-item error">Error for a script: {{ script_info.error }}</li>
+                        {% else %}
+                            <li class="status-item"><strong>{{ script_info.script_path | replace(manim_scripts_generated.directory + '/', '') }}</strong> (Scene: {{ script_info.scene_name }})</li>
+                        {% endif %}
+                    {% endfor %}
+                </ul>
+                <form action="/render_presentations" method="POST" class="button-group">
+                    <button type="submit">Step 5: Render Video Presentations</button>
+                </form>
+            </div>
+        {% endif %}
+        {% endif %}
+
+        {% if rendered_presentations_paths %}
+        <hr>
+        <h2>6. Video Presentation Rendering Status</h2>
+        {% if rendered_presentations_paths.error %}
+            <p class="error status-section">Error: {{ rendered_presentations_paths.error }}</p>
+        {% else %}
+            <div class="confirmation status-section">
+                <p>Presentation rendering process completed. Videos are in '{{ rendered_presentations_paths.output_directory_abs | replace(app.root_path + '/', '') }}'.</p>
+                <ul>
+                    {% for result in rendered_presentations_paths.results %}
+                        <li class="status-item">
+                        {% if result.error %}
+                            <strong>Error:</strong> {{ result.error }}
+                            {% if result.script_path %} <small class="path-info">(Script: {{ result.script_path | replace(manim_scripts_generated.directory + '/', '') }})</small> {% endif %}
+                            {% if result.stderr %} <code class="error-detail">Details: {{ result.stderr | truncate(300) }}</code> {% endif %}
+                        {% elif result.video_path %}
+                            <strong>Success!</strong> Video for scene: <strong>{{ result.video_path.split('/')[-2] | replace('_', ' ') }}</strong>
+                            {% set video_filename = result.video_path.split('/')[-1] %}
+                            {% set scene_dir_name = result.video_path.split('/')[-2] %}
+                            <video controls width="480">
+                                <source src="{{ url_for('serve_video', course_name_sanitized=course_topic_sanitized, scene_dir_name=scene_dir_name, filename=video_filename) }}" type="video/mp4">
+                                Your browser does not support the video tag.
+                            </video>
+                            <small class="path-info">Path: {{ result.video_path | replace(app.root_path + '/', '') }}</small>
+                        {% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+                <p style="text-align:center; font-weight:bold; font-size:1.1em; margin-top:20px;">Congratulations! Your course content and initial video presentations are ready.</p>
+            </div>
+        {% endif %}
+        {% endif %}
+    </div>
+</body>
+</html>
