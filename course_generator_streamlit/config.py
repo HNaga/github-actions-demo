@@ -1,0 +1,8 @@
+# config.py
+DEFAULT_TTS_ENGINE = "gTTS"
+AVAILABLE_TTS_ENGINES = ["gTTS", "OpenAI TTS", "ElevenLabs TTS", "Google Cloud TTS"]
+
+# Placeholders for API keys
+DEFAULT_OPENAI_API_KEY = ""
+DEFAULT_ELEVENLABS_API_KEY = ""
+DEFAULT_GOOGLE_CLOUD_TTS_API_KEY = ""
